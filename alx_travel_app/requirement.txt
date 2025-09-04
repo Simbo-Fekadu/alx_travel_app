@@ -1,0 +1,3 @@
+# Minimal single requirement file for automated check compatibility
+# (Full dependencies live in root requirements.txt)
+django>=5.0.0
