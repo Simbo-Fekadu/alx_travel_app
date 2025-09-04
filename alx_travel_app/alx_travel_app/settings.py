@@ -1,18 +1,17 @@
-"""Flattened Django settings for alx_travel_app.
+"""Unified Django settings for alx_travel_app.
 
-Moved up one level so that structure matches checker expectation:
-alx_travel_app/ (repo root)
-  alx_travel_app/
-    settings.py, urls.py, listings/, requirement.txt
+Combines original startproject settings with custom REST/CORS/Swagger/MySQL + env loading.
 """
+
 from pathlib import Path
-import os
 import environ
+import os
 
-BASE_DIR = Path(__file__).resolve().parent  # directory containing manage.py
+BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Environment variables
 env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR.parent, '.env'))  # still look one level up for .env
+environ.Env.read_env(os.path.join(BASE_DIR.parent, '.env'))  # look one level up for .env
 
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-me')
 DEBUG = env.bool('DEBUG', default=True)
@@ -25,9 +24,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Third-party
     'rest_framework',
     'corsheaders',
     'drf_yasg',
+    # Local apps
     'listings',
 ]
 
@@ -63,6 +64,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'alx_travel_app.wsgi.application'
 ASGI_APPLICATION = 'alx_travel_app.asgi.application'
 
+# Database: prefer MySQL via env, else fallback to sqlite
 if env('DB_ENGINE', default='mysql') == 'mysql':
     DATABASES = {
         'default': {
@@ -72,7 +74,9 @@ if env('DB_ENGINE', default='mysql') == 'mysql':
             'PASSWORD': env('DB_PASSWORD', default=''),
             'HOST': env('DB_HOST', default='localhost'),
             'PORT': env('DB_PORT', default='3306'),
-            'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
         }
     }
 else:
@@ -98,23 +102,29 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# CORS
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[
     'http://localhost:3000', 'http://127.0.0.1:3000'
 ])
 
+# REST Framework
 REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [ 'rest_framework.permissions.AllowAny' ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
 }
 
+# Swagger settings
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': { 'Basic': { 'type': 'basic' } },
     'USE_SESSION_AUTH': True,
 }
 
+# Celery (optional)
 CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='amqp://guest:guest@localhost:5672//')
 CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='rpc://')
 CELERY_ACCEPT_CONTENT = ['json']
